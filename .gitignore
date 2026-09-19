@@ -38,3 +38,6 @@ htmlcov/
 .idea/
 .DS_Store
 /data/feature_store/
+# Generated JSON reports (regenerated on each run, do not commit)
+reports/*.json
+!reports/.gitkeep
