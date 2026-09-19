@@ -1,0 +1,40 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environments
+venv/
+env/
+ENV/
+.env
+
+# Spark, Hadoop & Checkpoints
+data/checkpoints/
+metastore_db/
+derby.log
+spark-warehouse/
+
+# Raw and processed large dataset artifacts (Distributed Parquet Store)
+data/raw/*.pcap
+data/raw/*.csv
+data/processed/*.parquet
+data/features/*.parquet
+models/champion_model/
+
+# Logs & Monitoring Run-time Outputs
+logs/*.log
+reports/incident_report_*.md
+reports/incident_report_*.json
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# IDEs & System files
+.vscode/
+.idea/
+.DS_Store
+/data/feature_store/

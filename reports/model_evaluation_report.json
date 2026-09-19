@@ -1,0 +1,53 @@
+{
+    "model_metadata": {
+        "model_name": "Champion_RandomForest_Classifier",
+        "test_dataset_size": 19356,
+        "validation_dataset_size": 19456,
+        "status": "APPROVED_FOR_PRODUCTION"
+    },
+    "threshold_optimization": {
+        "optimal_threshold": 0.59,
+        "target_metric": "f1",
+        "target_score": 0.8722,
+        "accuracy": 0.9451,
+        "precision": 0.9951,
+        "recall": 0.7763,
+        "f1_score": 0.8722,
+        "true_positives": 3648,
+        "false_positives": 18,
+        "true_negatives": 14739,
+        "false_negatives": 1051
+    },
+    "baseline_metrics_default_threshold_0_5": {
+        "confusion_matrix": {
+            "true_positives": 3742,
+            "false_positives": 34,
+            "true_negatives": 14529,
+            "false_negatives": 1051
+        },
+        "accuracy": 0.9439,
+        "precision": 0.991,
+        "recall": 0.7807,
+        "f1_score": 0.8734,
+        "auc_roc": 0.0,
+        "auc_pr": 0.0,
+        "false_positive_rate": 0.0023,
+        "false_negative_rate": 0.2193
+    },
+    "final_metrics_optimized_threshold": {
+        "confusion_matrix": {
+            "true_positives": 3720,
+            "false_positives": 23,
+            "true_negatives": 14540,
+            "false_negatives": 1073
+        },
+        "accuracy": 0.9434,
+        "precision": 0.9939,
+        "recall": 0.7761,
+        "f1_score": 0.8716,
+        "auc_roc": 0.0,
+        "auc_pr": 0.0,
+        "false_positive_rate": 0.0016,
+        "false_negative_rate": 0.2239
+    }
+}

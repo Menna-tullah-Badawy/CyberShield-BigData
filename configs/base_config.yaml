@@ -1,0 +1,27 @@
+# ==============================================================================
+# CyberShield-BigData: Base Infrastructure & Environment Settings
+# ==============================================================================
+app:
+  name: "CyberShield-BigData"
+  version: "1.0.0"
+  environment: "production"
+  random_seed: 42
+  debug: false
+
+spark:
+  app_name: "CyberShield_Distributed_NIDS"
+  master: "local[*]"
+  driver_memory: "4g"
+  executor_memory: "4g"
+  executor_cores: 2
+  sql_shuffle_partitions: 8
+  serializer: "org.apache.spark.serializer.KryoSerializer"
+  arrow_enabled: true
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s - [%(levelname)s] - %(name)s - %(message)s"
+  log_to_file: true
+  log_file_path: "logs/cybershield.log"
+  max_file_size_mb: 10
+  backup_count: 5

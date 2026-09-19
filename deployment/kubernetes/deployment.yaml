@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cybershield-nids-deployment
+  labels:
+    app: cybershield-nids
+    tier: inference-engine
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cybershield-nids
+  template:
+    metadata:
+      labels:
+        app: cybershield-nids
+    spec:
+      containers:
+      - name: nids-serving-container
+        image: cybershield/nids-engine:1.0.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8000
+          name: api-port
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1000m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 8000
+          initialDelaySeconds: 20
+          periodSeconds: 15
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 8000
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        env:
+        - name: ENVIRONMENT
+          value: "production"
+        - name: LOG_LEVEL
+          value: "INFO"

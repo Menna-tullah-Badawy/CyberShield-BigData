@@ -1,0 +1,30 @@
+# Distributed Big Data & Processing
+pyspark>=3.4.1
+pyarrow>=14.0.0
+numpy>=1.24.3
+pandas>=2.0.3
+scipy>=1.10.1
+
+# Deep Learning & Cybersecurity Transformers
+torch>=2.0.0
+transformers>=4.30.0
+scapy>=2.5.0
+
+# Model Serving & API Microservice
+fastapi>=0.100.0
+uvicorn[standard]>=0.22.0
+pydantic>=2.0.0
+
+# Visualization & SOC Dashboard
+streamlit>=1.24.0
+plotly>=5.15.0
+
+# Testing & Code Quality (QA)
+pytest>=7.4.0
+pytest-cov>=4.1.0
+flake8>=6.0.0
+
+# Utilities & Configs
+pyyaml>=6.0.0
+requests>=2.31.0
+python-dotenv>=1.0.0

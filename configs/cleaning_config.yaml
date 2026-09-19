@@ -1,0 +1,14 @@
+# ==============================================================================
+# Data Quality & Cleaning Thresholds
+# ==============================================================================
+quality_gate:
+  max_allowed_duplicate_pct: 10.0
+  max_allowed_missing_pct: 5.0
+  iqr_factor: 1.5
+
+sanitization:
+  numeric_imputation_strategy: "constant" # "constant" or "mean"
+  default_numeric_fill: 0.0
+  default_payload_fill: "EMPTY_PAYLOAD"
+  clip_outliers: true
+  outlier_clip_factor: 3.0

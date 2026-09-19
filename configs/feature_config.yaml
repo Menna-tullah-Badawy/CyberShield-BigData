@@ -1,0 +1,27 @@
+# ==============================================================================
+# Feature Engineering & Representation Specifications
+# ==============================================================================
+datetime_extraction:
+  parts: ["hour", "dayofweek", "is_weekend"]
+
+log_transform_columns:
+  - "packet_length"
+  - "time_delta"
+  - "byte_rate_proxy"
+
+categorical_indexing_columns:
+  - "protocol"
+  - "flags"
+
+scaling:
+  method: "minmax" # "minmax" or "standardization"
+  output_col: "scaled_features"
+
+selection:
+  variance_threshold: 0.0001
+  output_col: "final_features"
+
+secbert_nlp:
+  model_name: "jackaduma/SecBERT"
+  max_sequence_length: 64
+  batch_size: 32

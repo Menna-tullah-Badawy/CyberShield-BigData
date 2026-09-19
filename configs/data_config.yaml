@@ -1,0 +1,22 @@
+# ==============================================================================
+# Data Pipeline & Ingestion Settings
+# ==============================================================================
+storage:
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  features_dir: "data/features"
+  checkpoints_dir: "data/checkpoints"
+  reports_dir: "reports"
+  models_dir: "models"
+
+ingestion:
+  default_format: "parquet"
+  pcap_buffer_size: 10000
+  infer_schema: true
+  mode: "DROPMALFORMED"
+
+streaming:
+  window_duration: "10 seconds"
+  slide_duration: "5 seconds"
+  watermark_delay: "10 seconds"
+  max_files_per_trigger: 1

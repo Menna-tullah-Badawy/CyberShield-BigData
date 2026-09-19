@@ -1,0 +1,30 @@
+# ==============================================================================
+# Machine Learning & Hyperparameter Tuning Parameters
+# ==============================================================================
+splitting:
+  train_ratio: 0.60
+  val_ratio: 0.20
+  test_ratio: 0.20
+  stratified: true
+
+cross_validation:
+  k_folds: 3
+  metric: "areaUnderROC"
+  parallelism: 2
+
+algorithms:
+  logistic_regression:
+    reg_params: [0.01, 0.1]
+    elastic_net: [0.0, 0.5]
+  random_forest:
+    num_trees: [20, 50]
+    max_depth: [5, 8]
+  gbt_classifier:
+    max_iter: [15, 30]
+    max_depth: [3, 5]
+    step_size: 0.1
+
+decision_threshold:
+  default_threshold: 0.50
+  optimization_target: "f1"
+  search_steps: 81

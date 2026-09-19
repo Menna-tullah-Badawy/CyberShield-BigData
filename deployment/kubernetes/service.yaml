@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: cybershield-nids-service
+  labels:
+    app: cybershield-nids
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 8000
+    protocol: TCP
+    name: http-serving
+  selector:
+    app: cybershield-nids

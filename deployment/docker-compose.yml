@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  # 1. خدمة واجهة برمجة التطبيقات للاستدلال الفوري (FastAPI Serving Microservice)
+  cybershield-api:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile
+    container_name: cybershield_api_service
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    volumes:
+      - ../data:/app/data
+      - ../models:/app/models
+      - ../reports:/app/reports
+      - ../logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # 2. لوحة التحكم التفاعلية لفرق الـ SOC (Streamlit UI)
+  cybershield-dashboard:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile
+    container_name: cybershield_soc_dashboard
+    restart: always
+    ports:
+      - "8501:8501"
+    command: ["streamlit", "run", "serving/dashboard/app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+    environment:
+      - API_ENDPOINT=http://cybershield-api:8000
+    volumes:
+      - ../reports:/app/reports
+      - ../logs:/app/logs
+    depends_on:
+      - cybershield-api
+
+networks:
+  default:
+    name: cybershield-network
