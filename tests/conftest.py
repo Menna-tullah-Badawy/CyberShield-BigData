@@ -6,13 +6,20 @@ PyTest Master Configuration and Spark Test Fixtures.
 import pytest
 import os
 import shutil
-from pyspark.sql import SparkSession
-from pyspark.sql.types import StructType, StructField, StringType, DoubleType, IntegerType
+
+try:
+    from pyspark.sql import SparkSession
+    from pyspark.sql.types import StructType, StructField, StringType, DoubleType, IntegerType
+    HAS_PYSPARK = True
+except ImportError:
+    HAS_PYSPARK = False
 
 
 @pytest.fixture(scope="session")
 def spark_session():
     """تهيئة جلسة Spark Session مخصصة لبيئة الاختبارات."""
+    if not HAS_PYSPARK:
+        pytest.skip("pyspark not installed — skipping Spark-backed tests")
     spark = (
         SparkSession.builder
         .master("local[2]")

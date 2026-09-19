@@ -125,6 +125,28 @@ class MambaNIDS(nn.Module):
         return self.classifier(out_pooled)
 
 
+class CNNBiLSTMModel(nn.Module):
+    """
+    CNN + BiLSTM with Attention pooling.
+    منقول من Cell 1 في cybershield.ipynb (كان معرّفاً داخل النوت بوك فقط).
+    """
+    def __init__(self, input_dim, cnn_out=64, hidden_dim=64, dropout=0.25):
+        super().__init__()
+        self.conv1 = nn.Conv1d(input_dim, cnn_out, kernel_size=3, padding=1)
+        self.bn1 = nn.BatchNorm1d(cnn_out)
+        self.lstm = nn.LSTM(cnn_out, hidden_dim, num_layers=2, batch_first=True,
+                            bidirectional=True, dropout=dropout)
+        self.attn = nn.Linear(hidden_dim * 2, 1)
+        self.fc = nn.Sequential(nn.Linear(hidden_dim * 2, 32), nn.ReLU(),
+                                nn.Dropout(dropout), nn.Linear(32, 2))
+
+    def forward(self, x):
+        h = F.relu(self.bn1(self.conv1(x.permute(0, 2, 1)))).permute(0, 2, 1)
+        out, _ = self.lstm(h)
+        w = F.softmax(self.attn(out), dim=1)
+        return self.fc(torch.sum(out * w, dim=1))
+
+
 class SequenceClassifier(nn.Module):
     """واجهة موحدة لاختيار المعمارية."""
     def __init__(self, arch_type: str, input_dim: int, num_classes: int = 2, **kwargs):
@@ -136,6 +158,8 @@ class SequenceClassifier(nn.Module):
             self.model = BiGRUModel(input_dim=input_dim, num_classes=num_classes, **kwargs)
         elif arch_type == "mamba":
             self.model = MambaNIDS(input_dim=input_dim, num_classes=num_classes, **kwargs)
+        elif arch_type in ("cnn_bilstm", "cnn-bilstm", "cnnbilstm"):
+            self.model = CNNBiLSTMModel(input_dim=input_dim, **kwargs)
         else:
             raise ValueError(f"المعمارية '{arch_type}' غير معرفة.")
 
