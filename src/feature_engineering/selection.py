@@ -1,57 +1,40 @@
 """
-Distributed Feature Selection Module.
-موديول اختيار الخصائص وحذف التباين الصفري (Variance Threshold & Column Filtering).
+Feature Selection (pandas/numpy track).
+منطق Cell 0: قائمة الحظر STRICT_EXCLUDE + فلتر التباين الصفري (يُدرّب على Train فقط).
 """
 
-from typing import List  # استيراد أدوات التوثيق للقوائم
-from pyspark.sql import DataFrame  # استيراد جدول بيانات سبارك
-from pyspark.ml.feature import VarianceThresholdSelector  # استيراد فاحص التباين الموزع في سبارك
-from src.common.logger import get_logger  # استيراد المسجل
+from typing import List, Tuple
 
-logger = get_logger(__name__)  # تهيئة المسجل
+import numpy as np
+import pandas as pd
+
+# قائمة الحظر الصارمة لمنع تسريب الهوية والمنافذ (بالنص من النوت بوك)
+STRICT_EXCLUDE = [
+    'label', 'target', 'timestamp', 'ts_parsed', 'flow id',
+    'src ip', 'dst ip', 'source ip', 'destination ip',
+    'src port', 'dst port', 'source port', 'destination port',
+    'protocol', 'unnamed: 0',
+]
+
+ZERO_VAR_EPS = 1e-5
 
 
-class FeatureSelector:  # تعريف كلاس اختيار الخصائص[cite: 20]
-    """
-    Remove low-variance or redundant features to reduce noise and dimensionality.
-    يقوم بحذف الأعمدة الثابتة عديمة الفائدة أو تصفية المتجهات ذات التباين المنعدم.
-    """
+class FeatureSelector:
+    """اختيار الخصائص الآمنة من التسريب."""
 
-    def remove_columns(self, df: DataFrame, columns_to_drop: List[str]) -> DataFrame:  # دالة حذف الأعمدة المحددة[cite: 20]
-        """
-        إسقاط قائمة من الأعمدة غير المرغوب فيها من جدول البيانات.
-        """
-        existing_to_drop = [c for c in columns_to_drop if c in df.columns]  # تصفية الأعمدة الموجودة
-        if existing_to_drop:  # في حال وجود أعمدة للإسقاط
-            logger.info(f"⚙️ [Feature Engineering] حذف الأعمدة غير المؤثرة: {existing_to_drop}...")  # تسجيل الحذف
-            return df.drop(*existing_to_drop)  # حذف الأعمدة عبر دالة drop في سبارك[cite: 20]
-        return df  # إرجاع الجدول كما هو[cite: 20]
+    @staticmethod
+    def apply_strict_exclude(df: pd.DataFrame) -> List[str]:
+        """استبعاد المنافذ والعناوين التعريفية (سطر النوت بوك بالنص)."""
+        return [c for c in df.columns if c.lower() not in STRICT_EXCLUDE]
 
-    def filter_low_variance(
-        self,
-        df: DataFrame,
-        features_col: str = "scaled_features",
-        output_col: str = "selected_features",
-        variance_threshold: float = 0.001
-    ) -> DataFrame:
-        """
-        استبعاد الميزات التي يقل تباينها عن العتبة المحددة لمنع إدخال الضوضاء للنموذج.
-        """
-        if features_col not in df.columns:  # التحقق من وجود عمود المتجهات
-            return df
-
-        logger.info(f"⚙️ [Feature Engineering] تصفية المتجه [{features_col}] بعتبة تباين: [{variance_threshold}]...")  # تسجيل الفلترة
-
-        try:
-            # تهيئة مرشح التباين الموزع
-            selector = VarianceThresholdSelector(
-                varianceThreshold=variance_threshold,
-                featuresCol=features_col,
-                outputCol=output_col
-            )
-            # تدريب وتطبيق الفلترة
-            selected_df = selector.fit(df).transform(df)  # تصفية الميزات الضعيفة
-            return selected_df  # إرجاع الجدول المصفى
-        except Exception as error:
-            logger.warning(f"⚠️ تعذر تطبيق مرشح التباين التلقائي، سيتم استخدام المتجه الأصلي: {str(error)}")  # تسجيل تحذير
-            return df.withColumn(output_col, df[features_col])  # الاعتماد على المتجه الأصلي
+    @staticmethod
+    def filter_zero_variance(
+        X_train: np.ndarray, X_val: np.ndarray, X_test: np.ndarray,
+        feature_names: List[str], eps: float = ZERO_VAR_EPS,
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, List[str]]:
+        """تصفية الميزات عديمة التباين بناءً على التدريب فقط لمنع الـ Leakage."""
+        stds = np.std(X_train.reshape(-1, X_train.shape[2]), axis=0)
+        valid_feats = stds > eps
+        kept = [n for n, k in zip(feature_names, valid_feats) if k]
+        return (X_train[:, :, valid_feats], X_val[:, :, valid_feats],
+                X_test[:, :, valid_feats], kept)

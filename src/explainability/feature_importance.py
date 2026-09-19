@@ -1,58 +1,39 @@
 """
-Global and Local Feature Importance Extraction Engine.
-محرك استخراج الأهمية النسبية لخصائص الشبكة الموزعة لكسر عتامة نماذج التعلم الآلي.
+Gradient Saliency Feature Importance.
+نقل حرفي من Cell 4 في cybershield.ipynb (دالة extract_xai).
 """
 
-from typing import Dict, Any, List  # استيراد أدوات التوثيق النوعي
-from pyspark.sql import DataFrame  # استيراد جدول بيانات سبارك
-from pyspark.ml.classification import RandomForestClassificationModel, GBTClassificationModel  # استيراد نماذج الأشجار
-from src.common.logger import get_logger  # استيراد نظام التسجيل
+from typing import Dict, List, Sequence
 
-logger = get_logger(__name__)  # تهيئة المسجل لهذا الموديول
+import numpy as np
+import torch
+import torch.nn as nn
 
 
 class GlobalFeatureImportance:
-    """
-    Extracts Gini-importance and Split-gain weights from distributed tree models
-    to identify the most critical network traffic features driving intrusion decisions.
-    """
+    """أهمية الخصائص عبر Gradient Saliency (نفس كود النوت بوك)."""
 
-    def __init__(self, feature_names: List[str] = None):
-        # قائمة أسماء الخصائص المطابقة لترتيب متجه التدريب (Feature Vector)
-        self.feature_names = feature_names or [
-            "packet_length", "time_delta", "header_length", "window_size",
-            "byte_rate_proxy", "header_ratio", "window_to_packet_ratio",
-            "packet_length_log", "protocol_idx", "flags_idx"
-        ]
+    def __init__(self, feature_names: Sequence[str] = None):
+        self.feature_names = list(feature_names) if feature_names else []
 
-    def extract_importance(self, model: Any) -> List[Dict[str, Any]]:
-        """
-        استخراج أوزان الأهمية للخصائص وترتيبها تنازلياً من الأكثر تأثيراً إلى الأقل.
-        """
-        logger.info("🔍 [XAI - Feature Importance] استخراج وتحليل أوزان مساهمة الخصائص في النموذج...")  # تسجيل العملية
-
-        # التحقق مما إذا كان النموذج من عائلة النماذج الشجرية المدعومة
-        if hasattr(model, "featureImportances"):
-            # استخراج مصفوفة الأهمية الخاصة بـ Spark ML
-            importances_array = model.featureImportances.toArray().tolist()  # تحويل المتجه لقائمة بايثون
-            
-            importance_list = []  # قائمة لتخزين أزواج (الخاصية، الوزن)
-            
-            # ربط كل وزن باسم الخاصية المقابلة
-            for idx, weight in enumerate(importances_array):
-                name = self.feature_names[idx] if idx < len(self.feature_names) else f"feature_{idx}"
-                importance_list.append({
-                    "feature": name,  # اسم الخاصية
-                    "importance_weight": round(float(weight), 4),  # الوزن النسبي
-                    "importance_percentage": round(float(weight) * 100, 2)  # النسبة المئوية للتأثير
-                })
-
-            # ترتيب الخصائص تنازلياً بناءً على الوزن النسبي
-            sorted_importances = sorted(importance_list, key=lambda x: x["importance_weight"], reverse=True)
-            
-            logger.info(f"✅ أعلى 3 خصائص مؤثرة في القرار: {[f['feature'] for f in sorted_importances[:3]]}")
-            return sorted_importances  # إرجاع القائمة المرتبة
-
-        else:
-            logger.warning("⚠️ النموذج الممرر لا يحتوي على خاصية featureImportances مباشرة، سيتم إرجاع أوزان تقريبية موحدة.")
-            return [{"feature": name, "importance_weight": 0.1, "importance_percentage": 10.0} for name in self.feature_names]
+    def extract_importance(
+        self, model: nn.Module, x: torch.Tensor,
+        names: Sequence[str] = None, n: int = 5,
+    ) -> List[Dict[str, object]]:
+        names = list(names) if names else self.feature_names
+        model.eval()
+        x.requires_grad_(True)
+        logits = model(x)
+        p = torch.softmax(logits, 1)[:, 1]
+        model.zero_grad()
+        p.backward()
+        g = x.grad[0].abs().mean(0).cpu().numpy()
+        idx = np.argsort(g)[::-1][:n]
+        f = [{"name": names[i] if i < len(names) else f"F{i}",
+              "importance": float(g[i])} for i in idx]
+        t = sum(d["importance"] for d in f)
+        if t > 0:
+            for d in f:
+                d["importance"] = d["importance"] / t
+        x.requires_grad_(False)
+        return f

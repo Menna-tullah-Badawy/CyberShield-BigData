@@ -1,22 +1,19 @@
 # ==============================================================================
-# Data Pipeline & Ingestion Settings
+# Data Pipeline & Ingestion Settings (mirrors Cell 0 constants)
 # ==============================================================================
 storage:
   raw_dir: "data/raw"
-  processed_dir: "data/processed"
-  features_dir: "data/features"
-  checkpoints_dir: "data/checkpoints"
+  store_dir: "data/feature_store/nids_features_latest"
+  out_dir: "benchmark_results"
   reports_dir: "reports"
   models_dir: "models"
 
 ingestion:
-  default_format: "parquet"
-  pcap_buffer_size: 10000
-  infer_schema: true
-  mode: "DROPMALFORMED"
+  kaggle_dataset_id: "solarmainframe/ids-intrusion-csv"
+  project_dataset: "mennatullahbadawy/cybershield-bigdata-project"
+  recursive_search: true
 
-streaming:
-  window_duration: "10 seconds"
-  slide_duration: "5 seconds"
-  watermark_delay: "10 seconds"
-  max_files_per_trigger: 1
+temporal_split:
+  train_ratio: 0.70
+  val_ratio: 0.85 # train 70% / val 15% / test 15%
+  sample_step: 5

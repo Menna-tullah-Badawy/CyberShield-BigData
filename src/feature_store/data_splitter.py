@@ -1,60 +1,28 @@
-﻿"""
-Stratified Distributed Dataset Splitter.
-تقسيم البيانات طبقياً (Train / Validation / Test) بكفاءة مع الحفاظ على نسب التهديدات.
+"""
+Data Splitter (numpy track).
+منطق Cell 1: موازنة فئات التدريب بنسبة 1:4 (Undersampling للـ Negatives).
 """
 
 from typing import Tuple
-from pyspark.sql import DataFrame
-from pyspark.sql.functions import col
-from src.common.logger import get_logger
 
-logger = get_logger("Data-Splitter")
+import numpy as np
+
+NEG_POS_RATIO = 4
 
 
-class SparkDataSplitter:
-    def __init__(self, seed: int = 42):
-        self.seed = seed
+class DataSplitter:
+    """موازنة وتقسيم بيانات التدريب."""
 
-    def stratified_split_by_label(
-        self,
-        df: DataFrame,
-        label_col: str = "label",
-        train_ratio: float = 0.70,
-        val_ratio: float = 0.15,
-        test_ratio: float = 0.15
-    ) -> Tuple[DataFrame, DataFrame, DataFrame]:
-        """تقسيم متوازن طبقياً للحفاظ على نسبة التوزيع بين مختلف أنواع الهجمات."""
-        logger.info(f"⚡ بدء تقسيم البيانات بنسب ({train_ratio*100:.0f}% Train, {val_ratio*100:.0f}% Val, {test_ratio*100:.0f}% Test)...")
-
-        # استخراج الفئات الفريدة
-        unique_labels = [row[label_col] for row in df.select(label_col).distinct().collect()]
-
-        train_dfs = []
-        val_dfs = []
-        test_dfs = []
-
-        for label_val in unique_labels:
-            subset = df.filter(col(label_col) == label_val)
-            train_sub, val_sub, test_sub = subset.randomSplit(
-                [train_ratio, val_ratio, test_ratio],
-                seed=self.seed
-            )
-            train_dfs.append(train_sub)
-            val_dfs.append(val_sub)
-            test_dfs.append(test_sub)
-
-        # دمج الأجزاء الموزعة
-        train_df = train_dfs[0]
-        for sub in train_dfs[1:]:
-            train_df = train_df.unionByName(sub, allowMissingColumns=True)
-
-        val_df = val_dfs[0]
-        for sub in val_dfs[1:]:
-            val_df = val_df.unionByName(sub, allowMissingColumns=True)
-
-        test_df = test_dfs[0]
-        for sub in test_dfs[1:]:
-            test_df = test_df.unionByName(sub, allowMissingColumns=True)
-
-        logger.info("✅ اكتمل التقسيم الطبقي للبيانات بنجاح.")
-        return train_df, val_df, test_df
+    @staticmethod
+    def balance_train_1_to_4(
+        X_train_raw: np.ndarray, y_train_raw: np.ndarray, seed: int = 42
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """Undersampling للـ Negatives بنسبة 1:4 (نفس كود النوت بوك)."""
+        rng = np.random.RandomState(seed)
+        pos_idx = np.where(y_train_raw == 1)[0]
+        neg_idx = np.where(y_train_raw == 0)[0]
+        sampled_neg = rng.choice(
+            neg_idx, size=min(len(neg_idx), len(pos_idx) * NEG_POS_RATIO), replace=False)
+        train_idx = np.concatenate([pos_idx, sampled_neg])
+        rng.shuffle(train_idx)
+        return X_train_raw[train_idx], y_train_raw[train_idx]

@@ -1,40 +1,56 @@
+# 🛡️ CyberShield-BigData: Hybrid NIDS
 
-#### 1️⃣2️⃣ `README.md`
-📍 **المسار الكامل:** `CyberShield-BigData/README.md`
+Network Intrusion Detection on CICIDS-2018 with **temporal deep learning**
+(BiLSTM · BiGRU · CNN-BiLSTM · **Mamba SSM**), gradient-boosted baselines
+(XGBoost · CatBoost · LightGBM), a calibrated **Hybrid Ensemble**,
+gradient **XAI**, **MITRE ATT&CK RAG** (BM25 + LSA), a 7-page SOC PDF report,
+a **FastAPI** serving layer, and a **Telegram** live SOC monitor.
 
-```markdown
-# 🛡️ CyberShield-BigData: Enterprise Distributed Hybrid NIDS
-
-[![CI/CD Pipeline](https://github.com/cybershield/nids-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/cybershield/nids-engine/actions)
-[![Python 3.10](https://img.shields.io/badge/Python-3.10-blue.svg)](https://www.python.org/downloads/)
-[![Apache Spark](https://img.shields.io/badge/Apache%20Spark-3.4.1-orange.svg)](https://spark.apache.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-Production%20Ready-green.svg)](https://fastapi.tiangolo.com/)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-
-An enterprise-grade, distributed **Hybrid Network Intrusion Detection System (NIDS)** and MLOps framework. Built for high-throughput environments processing millions of packets using **Apache Spark**, **SecBERT NLP Transformers**, **Explainable AI (XAI)**, and **GenAI Incident Reporting** aligned with **MITRE ATT&CK**.
-
----
-
-## 🌟 Key Architecture Pillars
-1. **Scalable Ingestion**: Raw PCAP disassembly and Spark Structured Streaming.
-2. **Independent Data Quality Gate**: Automated auditing of missing values, duplicates, outliers, and schema drift.
-3. **7-Component Feature Pipeline**: Behavioral aggregations, datetime extraction, scaling, variance selection, and domain transforms.
-4. **Explainable AI (XAI)**: Gini feature importance + token saliency for payload threat attribution.
-5. **Continuous MLOps Monitoring**: Statistical drift detection via **Kolmogorov-Smirnov (KS-Test)** and automated model retraining.
-6. **GenAI Threat Intelligence**: Automated MITRE ATT&CK mapping and executive incident triage generation.
-
----
+Reference implementation: `cybershield.ipynb` (Kaggle) — every cell maps 1:1
+to a module in this repo (see `docs/architecture.md`).
 
 ## 🚀 Quickstart
 
-### Local Setup
 ```bash
-# 1. Clone repository
-git clone [https://github.com/your-org/CyberShield-BigData.git](https://github.com/your-org/CyberShield-BigData.git)
-cd CyberShield-BigData
+# 1. Install
+pip install -r requirements.txt
 
-# 2. Install dependencies
-make install
+# 2. Full pipeline: extract → benchmark → diagnostics → figures
+python main.py --mode all --data-path /path/to/csvs   # or omit for kagglehub download
 
-# 3. Run full End-to-End Pipeline
-python main.py --mode all
+# 3. Serve the API / Build the PDF / Run the Telegram bot
+python main.py --mode serve     # http://localhost:8000/docs
+python main.py --mode report    # benchmark_results/CyberShield_SOC_Report.pdf
+python main.py --mode bot       # needs CYBERSHIELD_BOT_TOKEN
+```
+
+```bash
+make test        # pytest suite
+make run-api     # uvicorn serving.api.main:app
+```
+
+## 🧭 Layout
+
+```
+src/
+├── data_pipeline/   CSV ingestion (kagglehub + day files)
+├── quality/         lightweight validation gate
+├── cleaning/        to_numeric + fillna(0) + nan_to_num
+├── feature_engineering/  timestamp sort · sequences · scaling · selection
+├── feature_store/   .npy store + metadata + 1:4 balancing
+├── models/          tabular factory · DL suite · trainer · champion selector
+├── evaluation/      threshold optimizer · diagnostics · publication figures
+├── explainability/  gradient saliency XAI engine
+├── monitoring/      batch audit + Telegram live monitor
+├── genai_reporting/ MITRE RAG retriever + SOC PDF reports
+├── orchestrator/    benchmark end-to-end runner
+└── common/          logger · exceptions · decorators
+serving/api/         FastAPI (/health, /api/metrics, /api/threats, POST /api/detect)
+scripts/             run_benchmark.py · deploy.sh
+configs/             YAML constants mirroring the notebook
+```
+
+## 📊 Sweet-spot targets
+
+Thresholds are calibrated per model for **Precision ≥ 92% & Recall ≥ 90%**
+with FPR ≤ 1.5% (`configs/model_config.yaml`).

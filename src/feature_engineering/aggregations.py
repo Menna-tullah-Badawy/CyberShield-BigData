@@ -1,43 +1,38 @@
 """
-Distributed Feature Aggregation Module using PySpark.
-موديول التجميعات والحسابات الإحصائية السلوكية للشبكة بناءً على عناوين IP أو البروتوكولات.
+Feature Aggregations (numpy track).
+منطق Cell 0 + Cell 1: بناء السلاسل الزمنية + إحصائيات الـ Flow للنماذج الجدولية.
 """
 
-from typing import List  # استيراد أدوات التوثيق النوعي
-from pyspark.sql import DataFrame  # استيراد جدول بيانات سبارك
-from pyspark.sql.functions import avg, count, max as s_max, min as s_min, sum as s_sum, col  # استيراد دوال التجميع[cite: 16]
-from src.common.logger import get_logger  # استيراد المسجل
+from typing import Tuple
 
-logger = get_logger(__name__)  # تهيئة المسجل لهذا الموديول
+import numpy as np
+
+SEQ_LEN = 10
+SEQ_ATTACK_VOTE = 0.2  # السلسلة Attack لو متوسط الليبل >= 0.2
 
 
-class FeatureAggregator:  # تعريف كلاس التجميعات الإحصائية[cite: 16]
-    """
-    Compute distributed aggregations and behavioral summary features.
-    حساب تجميعات إحصائية (المجموع، المتوسط، العد) لحزم الاتصال.
-    """
+class FeatureAggregator:
+    """التجميعات الزمنية والإحصائية (نفس دوال النوت بوك)."""
 
-    def aggregate_by_key(self, df: DataFrame, group_col: str, target_metric_col: str = "packet_length") -> DataFrame:  # دالة التجميع بمفتاح[cite: 16]
-        """
-        تجميع البيانات بناءً على مفتاح محدد (مثل src_ip أو protocol) وحساب مقاييس السلوك.
-        """
-        if group_col not in df.columns or target_metric_col not in df.columns:  # التحقق من وجود الأعمدة
-            logger.warning(f"⚠️ الأعمدة المطلوبة للتجميع ({group_col}, {target_metric_col}) غير موجودة بالكامل.")  # تسجيل تحذير
-            return df  # إعادة الجدول الأصلي
+    @staticmethod
+    def create_day_sequences(
+        X_mat: np.ndarray, y_arr: np.ndarray, seq_len: int = SEQ_LEN
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """تقطيع مصفوفة اليوم لسلاسل زمنية (دالة النوت بوك بالنص)."""
+        num_seq = len(X_mat) // seq_len
+        if num_seq == 0:
+            return np.empty((0, seq_len, X_mat.shape[1])), np.empty((0,))
+        X_cut = X_mat[:num_seq * seq_len].reshape(num_seq, seq_len, X_mat.shape[1])
+        y_cut = y_arr[:num_seq * seq_len].reshape(num_seq, seq_len)
+        y_final = (np.mean(y_cut, axis=1) >= SEQ_ATTACK_VOTE).astype(np.int64)
+        return X_cut, y_final
 
-        logger.info(f"⚙️ [Feature Engineering] تجميع البيانات سلوكياً بناءً على [{group_col}] للمقياس [{target_metric_col}]...")  # تسجيل العملية
-
-        # حساب التجميعات الموزعة (العدد، المتوسط، الإجمالي، والقيمة العظمى)[cite: 16]
-        aggregated_stats = (
-            df.groupBy(group_col)  # التجميع حسب المفتاح المحدد[cite: 16]
-            .agg(
-                count("*").alias(f"{group_col}_flow_count"),  # حساب عدد الحزم في هذا التدفق[cite: 16]
-                avg(target_metric_col).alias(f"{group_col}_avg_{target_metric_col}"),  # متوسط الحجم[cite: 16]
-                s_sum(target_metric_col).alias(f"{group_col}_total_{target_metric_col}"),  # إجمالي الحجم المنقول[cite: 16]
-                s_max(target_metric_col).alias(f"{group_col}_max_{target_metric_col}")  # أقصى حجم حزمة
-            )
-        )
-
-        # دمج الإحصاءات المحسوبة مع الجدول الأصلي عبر عملية Join موزعة
-        joined_df = df.join(aggregated_stats, on=group_col, how="left")  # دمج الميزات المجمعة
-        return joined_df  # إرجاع الجدول المزود بالخصائص السلوكية
+    @staticmethod
+    def extract_flow_stats(X_3d: np.ndarray) -> np.ndarray:
+        """آخر قيمة + mean + max + min + std لكل سلسلة (دالة extract_features بالنص)."""
+        f_last = X_3d[:, -1, :]
+        f_mean = np.mean(X_3d, axis=1)
+        f_max = np.max(X_3d, axis=1)
+        f_min = np.min(X_3d, axis=1)
+        f_std = np.std(X_3d, axis=1)
+        return np.hstack([f_last, f_mean, f_max, f_min, f_std])

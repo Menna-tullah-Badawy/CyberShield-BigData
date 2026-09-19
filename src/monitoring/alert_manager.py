@@ -1,53 +1,73 @@
 """
-Enterprise MLOps Alerting and Automated Retraining Dispatcher.
-مدير التنبيهات الموزعة وإطلاق إشارات إعادة التدريب التلقائي (Automated Retraining Trigger).
+Alert Manager — Telegram SOC alerts + incident registry.
+منطق Cell 7 (المعاد بناؤه): dispatch_telegram_alert + send_telegram_document + active_incidents.
+
+الإعداد عبر: CYBERSHIELD_BOT_TOKEN / CYBERSHIELD_ADMIN_CHAT_ID
 """
 
-from typing import Dict, Any  # استيراد أدوات التوثيق النوعي
-from src.common.logger import get_logger  # استيراد المسجل
+import os
+from typing import Dict
 
-logger = get_logger(__name__)  # تهيئة المسجل
+import requests
+
+BOT_TOKEN = os.environ.get("CYBERSHIELD_BOT_TOKEN", "")
+ADMIN_CHAT_ID = os.environ.get("CYBERSHIELD_ADMIN_CHAT_ID", "")
+
+# سجل الحوادث النشطة (نفس اسم النوت بوك)
+active_incidents: Dict[str, dict] = {}
 
 
 class AlertManager:
-    """
-    Handles alert dispatching (Console / Logs / Security Webhooks)
-    and evaluates conditions to trigger automated model retraining pipelines.
-    """
+    """إرسال تنبيهات الحوادث عبر تليجرام (وضع محاكاة بدون توكن)."""
 
-    def __init__(self, webhook_url: str = None):
-        self.webhook_url = webhook_url  # رابط الويب هوك لإرسال التنبيهات (مثل Slack أو Discord أو SIEM)
+    def __init__(self, bot_token: str = BOT_TOKEN, chat_id: str = ADMIN_CHAT_ID):
+        self.bot_token = bot_token or BOT_TOKEN
+        self.chat_id = chat_id or ADMIN_CHAT_ID
 
-    def dispatch_alert(self, level: str, title: str, details: Dict[str, Any]):
-        """
-        إرسال تنبيه أمني وفق درجة الخطورة (INFO, WARNING, CRITICAL).
-        """
-        log_message = f"📢 [ALERT - {level.upper()}] {title} | Details: {details}"
+    def dispatch_alert(self, incident: dict) -> bool:
+        """إرسال تنبيه الحادثة مع أزرار (حظر/تقرير/تجاهل) — نفس callback_data في Cell 7."""
+        active_incidents[incident["src_ip"]] = incident
+        text = (
+            f"🚨 <b>تنبيه اختراق جديد!</b>\n"
+            f"━━━━━━━━━━━━\n"
+            f"🛡️ <b>الهجوم:</b> {incident['threat_name']}\n"
+            f"🏷️ <b>التصنيف:</b> {incident['threat_id']}\n"
+            f"🎯 <b>نسبة التأكد:</b> {incident['confidence']:.1f}%\n"
+            f"🌐 <b>المصدر:</b> <code>{incident['src_ip']}</code>\n"
+            f"🔒 <b>الحالة:</b> {incident['status']}"
+        )
+        keyboard = {"inline_keyboard": [[
+            {"text": "🛑 حظر الـ IP فوراً", "callback_data": f"block_{incident['src_ip']}"},
+            {"text": "📄 التقرير", "callback_data": f"report_{incident['src_ip']}"},
+            {"text": "❌ تجاهل", "callback_data": f"ignore_{incident['src_ip']}"},
+        ]]}
+        if not self.bot_token or not self.chat_id:
+            print(f"[SIMULATE] Telegram alert → chat {self.chat_id or '?'}: "
+                  f"{incident['threat_name']} ({incident['src_ip']})")
+            return False
+        try:
+            r = requests.post(
+                f"https://api.telegram.org/bot{self.bot_token}/sendMessage",
+                json={"chat_id": self.chat_id, "text": text,
+                      "parse_mode": "HTML", "reply_markup": keyboard},
+                timeout=20)
+            return bool(r.ok)
+        except Exception as e:
+            print(f"⚠️ Telegram send failed: {e}")
+            return False
 
-        if level.upper() == "CRITICAL":
-            logger.critical(log_message)
-        elif level.upper() == "WARNING":
-            logger.warning(log_message)
-        else:
-            logger.info(log_message)
-
-    def should_trigger_retraining(self, drift_summary: Dict[str, Any]) -> bool:
-        """
-        فحص تقرير الانحراف وتحديد ما إذا كان النظام بحاجة لإعادة التدريب التلقائي (Automated Retraining).
-        """
-        status = drift_summary.get("overall_drift_status", "HEALTHY")
-        drifted_pct = drift_summary.get("drifted_features_percentage", 0.0)
-
-        # يتم إطلاق إعادة التدريب إذا كانت الحالة حرجة أو تجاوزت نسبة الخصائص المنحرفة 25%
-        if status == "CRITICAL_DRIFT" or drifted_pct >= 25.0:
-            self.dispatch_alert(
-                level="CRITICAL",
-                title="إطلاق إعادة التدريب التلقائي للنموذج (Auto-Retraining Triggered)",
-                details={
-                    "reason": "تجاوز انحراف الخصائص الحد الأقصى للأمان",
-                    "drifted_features_pct": drifted_pct
-                }
-            )
-            return True
-
-        return False
+    def send_document(self, pdf_path: str, caption: str) -> bool:
+        """إرسال ملف PDF عبر sendDocument (وضع محاكاة بدون توكن)."""
+        if not self.bot_token or not self.chat_id:
+            print(f"[SIMULATE] Telegram document → chat {self.chat_id or '?'}: {pdf_path}")
+            return False
+        try:
+            with open(pdf_path, "rb") as f:
+                r = requests.post(
+                    f"https://api.telegram.org/bot{self.bot_token}/sendDocument",
+                    data={"chat_id": self.chat_id, "caption": caption, "parse_mode": "HTML"},
+                    files={"document": f}, timeout=30)
+            return bool(r.ok)
+        except Exception as e:
+            print(f"⚠️ Telegram document failed: {e}")
+            return False

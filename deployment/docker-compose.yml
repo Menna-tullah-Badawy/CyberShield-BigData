@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # 1. خدمة واجهة برمجة التطبيقات للاستدلال الفوري (FastAPI Serving Microservice)
+  # Real-time inference microservice (FastAPI: Mamba + XAI + MITRE RAG)
   cybershield-api:
     build:
       context: ..
@@ -13,35 +13,21 @@ services:
     environment:
       - ENVIRONMENT=production
       - LOG_LEVEL=INFO
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - CYBERSHIELD_STORE=/app/data/feature_store/nids_features_latest
+      - CYBERSHIELD_OUT=/app/benchmark_results
+      - CYBERSHIELD_BOT_TOKEN=${CYBERSHIELD_BOT_TOKEN:-}
+      - CYBERSHIELD_ADMIN_CHAT_ID=${CYBERSHIELD_ADMIN_CHAT_ID:-}
     volumes:
       - ../data:/app/data
       - ../models:/app/models
       - ../reports:/app/reports
       - ../logs:/app/logs
+      - ../benchmark_results:/app/benchmark_results
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health/live"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-
-  # 2. لوحة التحكم التفاعلية لفرق الـ SOC (Streamlit UI)
-  cybershield-dashboard:
-    build:
-      context: ..
-      dockerfile: deployment/Dockerfile
-    container_name: cybershield_soc_dashboard
-    restart: always
-    ports:
-      - "8501:8501"
-    command: ["streamlit", "run", "serving/dashboard/app.py", "--server.port=8501", "--server.address=0.0.0.0"]
-    environment:
-      - API_ENDPOINT=http://cybershield-api:8000
-    volumes:
-      - ../reports:/app/reports
-      - ../logs:/app/logs
-    depends_on:
-      - cybershield-api
 
 networks:
   default:

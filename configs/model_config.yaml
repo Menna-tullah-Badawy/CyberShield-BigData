@@ -1,30 +1,67 @@
 # ==============================================================================
-# Machine Learning & Hyperparameter Tuning Parameters
+# Model & Benchmark Settings (mirrors Cell 1 constants)
 # ==============================================================================
-splitting:
-  train_ratio: 0.60
-  val_ratio: 0.20
-  test_ratio: 0.20
-  stratified: true
+tabular:
+  xgboost:
+    n_estimators: 350
+    learning_rate: 0.035
+    max_depth: 5
+    subsample: 0.80
+    colsample_bytree: 0.80
+    reg_lambda: 8.0
+    min_child_weight: 4
+    scale_pos_weight: 4.0
+    tree_method: "hist"
+  catboost:
+    iterations: 400
+    learning_rate: 0.04
+    depth: 5
+    l2_leaf_reg: 8.0
+    bootstrap_type: "Bernoulli"
+    subsample: 0.80
+    scale_pos_weight: 4.0
+    early_stopping_rounds: 30
+  lightgbm:
+    n_estimators: 350
+    learning_rate: 0.035
+    max_depth: 5
+    num_leaves: 31
+    subsample: 0.80
+    subsample_freq: 1
+    colsample_bytree: 0.80
+    reg_lambda: 8.0
+    min_child_samples: 40
+    scale_pos_weight: 4.0
 
-cross_validation:
-  k_folds: 3
-  metric: "areaUnderROC"
-  parallelism: 2
+deep_learning:
+  epochs: 8
+  lr: 0.001
+  weight_decay: 0.002
+  grad_clip: 1.0
+  pos_weight: 4.0
+  hidden_dim: 64
+  num_layers: 2
+  dropout: 0.25
+  mamba:
+    d_model: 64
+    d_state: 16
+    dropout: 0.20
+  cnn_bilstm:
+    cnn_out: 64
 
-algorithms:
-  logistic_regression:
-    reg_params: [0.01, 0.1]
-    elastic_net: [0.0, 0.5]
-  random_forest:
-    num_trees: [20, 50]
-    max_depth: [5, 8]
-  gbt_classifier:
-    max_iter: [15, 30]
-    max_depth: [3, 5]
-    step_size: 0.1
+ensemble_weights:
+  MAMBA_SSM: 0.40
+  XGBoost: 0.35
+  LightGBM: 0.15
+  CNN_BiLSTM: 0.10
 
-decision_threshold:
-  default_threshold: 0.50
-  optimization_target: "f1"
-  search_steps: 81
+threshold:
+  n_taus: 1500
+  tau_min: 0.01
+  tau_max: 0.95
+  target_precision: 0.92
+  target_recall: 0.90
+  max_fpr: 0.015
+
+serving:
+  detect_threshold: 0.03

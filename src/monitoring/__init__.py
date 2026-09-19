@@ -1,17 +1,19 @@
 """
-Continuous Monitoring and MLOps Package.
-تصدير كلاسات كشف انحراف التوزيعات، مراقبة أداء الاستدلال، ونظام التنبيهات الآلية.
+Live Monitoring Package (AI detection + Telegram SOC bot).
 """
 
-from src.monitoring.drift_detector import DataDriftDetector  # استيراد محرك كشف انحراف البيانات
-from src.monitoring.performance_monitor import PerformanceMonitor  # استيراد محرك مراقبة الأداء
-from src.monitoring.alert_manager import AlertManager  # استيراد مدير التنبيهات
-from src.monitoring.monitoring_engine import MLOpsMonitoringEngine  # استيراد المنسق العام للمراقبة
+from src.monitoring.alert_manager import (
+    ADMIN_CHAT_ID,
+    BOT_TOKEN,
+    AlertManager,
+    active_incidents,
+)
+from src.monitoring.monitoring_engine import MLOpsMonitoringEngine
 
-# إتاحة الكلاسات للاستدعاء المباشر
 __all__ = [
-    "DataDriftDetector",
-    "PerformanceMonitor",
     "AlertManager",
-    "MLOpsMonitoringEngine"
+    "MLOpsMonitoringEngine",
+    "active_incidents",
+    "BOT_TOKEN",
+    "ADMIN_CHAT_ID",
 ]

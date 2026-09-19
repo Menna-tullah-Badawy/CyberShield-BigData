@@ -28,8 +28,8 @@ run-pipeline:
 run-api:
 	uvicorn serving.api.main:app --host 0.0.0.0 --port 8000 --reload
 
-run-dashboard:
-	streamlit run serving/dashboard/app.py --server.port 8501
+run-bot:
+	python main.py --mode bot
 
 docker-up:
 	docker compose -f deployment/docker-compose.yml up --build -d

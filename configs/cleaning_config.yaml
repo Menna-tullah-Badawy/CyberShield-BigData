@@ -1,14 +1,11 @@
 # ==============================================================================
-# Data Quality & Cleaning Thresholds
+# Cleaning Settings (mirrors Cell 0/Cell 1 constants)
 # ==============================================================================
-quality_gate:
-  max_allowed_duplicate_pct: 10.0
-  max_allowed_missing_pct: 5.0
-  iqr_factor: 1.5
-
 sanitization:
-  numeric_imputation_strategy: "constant" # "constant" or "mean"
+  numeric_coercion: true # pd.to_numeric(errors='coerce')
   default_numeric_fill: 0.0
-  default_payload_fill: "EMPTY_PAYLOAD"
-  clip_outliers: true
-  outlier_clip_factor: 3.0
+  nan_to_num: [0.0, 0.0, 0.0] # nan, posinf, neginf
+
+scaling_clip:
+  train_clip: 6.0
+  serving_clip: 15.0

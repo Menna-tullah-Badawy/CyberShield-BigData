@@ -31,13 +31,13 @@ spec:
             cpu: "2000m"
         livenessProbe:
           httpGet:
-            path: /health/live
+            path: /health
             port: 8000
           initialDelaySeconds: 20
           periodSeconds: 15
         readinessProbe:
           httpGet:
-            path: /health/ready
+            path: /health
             port: 8000
           initialDelaySeconds: 15
           periodSeconds: 10

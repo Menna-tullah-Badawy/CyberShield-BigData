@@ -1,4 +1,8 @@
-﻿from src.feature_store.transformations import FeatureStoreManager
-from src.feature_store.data_splitter import SparkDataSplitter
+"""
+Feature Store Package.
+"""
 
-__all__ = ["FeatureStoreManager", "SparkDataSplitter"]
+from src.feature_store.data_splitter import DataSplitter
+from src.feature_store.transformations import NPY_FILES, FeatureStoreManager
+
+__all__ = ["DataSplitter", "FeatureStoreManager", "NPY_FILES"]
